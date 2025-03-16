@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Year-Specific Timetable Upload</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      text-align: center;
+      width: 300px;
+    }
+    .hidden {
+      display: none;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .remove-btn {
+      background-color: #f44336;
+    }
+    .remove-btn:hover {
+      background-color: #d32f2f;
+    }
+    .error-message {
+      color: red;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    .file-name {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .image-container {
+      max-width: 100vw;
+      max-height: 100vh;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+    }
+    img {
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      max-width: 90%;
+      height: auto;
+    }
+    select {
+      padding: 10px 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Year Selection Container -->
+  <div id="yearSelection" class="container">
+    <h2>Select Your Year</h2>
+    <select id="yearSelect">
+      <option value="">-- Select Year --</option>
+      <option value="1st Year">1st Year</option>
+      <option value="2nd Year">2nd Year</option>
+      <option value="3rd Year">3rd Year</option>
+      <option value="4th Year">4th Year</option>
+    </select>
+    <br />
+    <button id="yearProceedButton">Proceed</button>
+  </div>
+
+  <!-- Timetable Upload Container (hidden until a year is selected) -->
+  <div id="uploadContainer" class="container hidden">
+    <input type="file" id="fileInput" accept="image/*" class="hidden" />
+    <button id="uploadButton">Upload Timetable</button>
+    <p id="fileName" class="file-name hidden"></p>
+    <p id="errorMessage" class="error-message hidden"></p>
+  </div>
+
+  <!-- Timetable Display Container -->
+  <div class="image-container">
+    <img id="displayTimetable" alt="Uploaded Timetable" class="hidden">
+  </div>
+
+  <!-- Control Buttons -->
+  <button id="removeButton" class="hidden remove-btn">Remove Timetable</button>
+  <button id="goBackButton" class="hidden">Go Back</button>
+
+  <script>
+    const yearSelection = document.getElementById('yearSelection');
+    const yearSelect = document.getElementById('yearSelect');
+    const yearProceedButton = document.getElementById('yearProceedButton');
+    const uploadContainer = document.getElementById('uploadContainer');
+    const fileInput = document.getElementById('fileInput');
+    const uploadButton = document.getElementById('uploadButton');
+    const fileNameDisplay = document.getElementById('fileName');
+    const errorMessage = document.getElementById('errorMessage');
+    const displayTimetable = document.getElementById('displayTimetable');
+    const removeButton = document.getElementById('removeButton');
+    const goBackButton = document.getElementById('goBackButton');
+
+    let selectedYear = localStorage.getItem('selectedYear');
+
+    function showUploadInterface() {
+      console.log('Showing upload interface for year:', selectedYear);
+      yearSelection.classList.add('hidden');
+      uploadContainer.classList.remove('hidden');
+
+      const storedTimetable = localStorage.getItem('timetableData_' + selectedYear);
+      if (storedTimetable) {
+        displayTimetable.src = storedTimetable;
+        displayTimetable.classList.remove('hidden');
+        uploadContainer.classList.add('hidden');
+        removeButton.classList.remove('hidden');
+        goBackButton.classList.remove('hidden');
+      }
+    }
+
+    yearProceedButton.addEventListener('click', () => {
+      selectedYear = yearSelect.value;
+      if (!selectedYear) {
+        alert('Please select a year.');
+        return;
+      }
+      localStorage.setItem('selectedYear', selectedYear);
+      showUploadInterface();
+    });
+
+    uploadButton.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        if (!file.type.startsWith('image/')) {
+          errorMessage.textContent = 'Invalid file type. Please select an image file.';
+          errorMessage.classList.remove('hidden');
+          return;
+        }
+
+        const maxSize = 2 * 1024 * 1024;
+        if (file.size > maxSize) {
+          errorMessage.textContent = 'File size exceeds 2MB limit.';
+          errorMessage.classList.remove('hidden');
+          return;
+        }
+
+        errorMessage.classList.add('hidden');
+        fileNameDisplay.textContent = `Selected: ${file.name}`;
+        fileNameDisplay.classList.remove('hidden');
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          localStorage.setItem('timetableData_' + selectedYear, e.target.result);
+          displayTimetable.src = e.target.result;
+          displayTimetable.classList.remove('hidden');
+          uploadContainer.classList.add('hidden');
+          removeButton.classList.remove('hidden');
+          goBackButton.classList.remove('hidden');
+          fileNameDisplay.classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('No file selected');
+      }
+    });
+
+    removeButton.addEventListener('click', () => {
+      localStorage.removeItem('timetableData_' + selectedYear);
+      displayTimetable.src = '';
+      displayTimetable.classList.add('hidden');
+      uploadContainer.classList.remove('hidden');
+      removeButton.classList.add('hidden');
+      goBackButton.classList.add('hidden');
+      fileInput.value = '';
+    });
+
+    goBackButton.addEventListener('click', () => {
+      localStorage.removeItem('selectedYear');
+      selectedYear = '';
+      yearSelect.value = '';
+      yearSelection.classList.remove('hidden');
+      uploadContainer.classList.add('hidden');
+      removeButton.classList.add('hidden');
+      goBackButton.classList.add('hidden');
+      displayTimetable.classList.add('hidden');
+    });
+
+    window.onload = () => {
+      selectedYear = localStorage.getItem('selectedYear');
+      yearSelect.value = selectedYear ? selectedYear : "";
+      if (selectedYear) {
+        showUploadInterface();
+      }
+    };
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload and Remove Images by Year</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f0f0f0;
+      min-height: 100vh;
+    }
+    .hidden {
+      display: none;
+    }
+    .container {
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+      margin-top: 50px;
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    select {
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #4CAF50;
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+    }
+    select:hover {
+      border-color: #45a049;
+    }
+    .upload-button {
+      padding: 15px;
+      border: 2px solid #4CAF50;
+      border-radius: 10px;
+      background-color: white;
+      color: #4CAF50;
+      font-size: 18px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s, color 0.3s;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .upload-button:hover {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .remove-button {
+      padding: 10px;
+      border: 2px solid red;
+      border-radius: 10px;
+      background-color: white;
+      color: red;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s, color 0.3s;
+      width: auto;
+      margin-top: 10px;
+    }
+    .remove-button:hover {
+      background-color: red;
+      color: white;
+    }
+    .back-button {
+      padding: 8px;
+      border: 2px solid #4CAF50;
+      border-radius: 8px;
+      background-color: white;
+      color: #4CAF50;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s, color 0.3s;
+      width: auto;
+      margin-top: 10px;
+    }
+    .back-button:hover {
+      background-color: #4CAF50;
+      color: white;
+    }
+    img {
+      max-width: 100%;
+      margin-top: 20px;
+      border-radius: 5px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="yearSelection">
+    <h1>Select Your Year</h1>
+    <select id="yearDropdown" onchange="handleYearSelection()">
+      <option value="" disabled selected>-- Select Year --</option>
+      <option value="1st">1st Year</option>
+      <option value="2nd">2nd Year</option>
+      <option value="3rd">3rd Year</option>
+      <option value="4th">4th Year</option>
+    </select>
+  </div>
+
+  <div class="container hidden" id="uploadSection">
+    <h2 id="selectedYearTitle"></h2>
+    <input type="file" id="fileInput" name="file" accept="image/*" class="hidden">
+    <button id="uploadButton" class="upload-button">Upload Image</button>
+    <img id="uploadedImage" alt="Uploaded Image" class="hidden">
+    <button id="removeButton" class="remove-button hidden">Remove</button>
+  </div>
+
+  <button id="backButton" class="back-button hidden" onclick="goBack()">Back</button>
+
+  <script>
+    const yearSelection = document.getElementById('yearSelection');
+    const uploadSection = document.getElementById('uploadSection');
+    const backButton = document.getElementById('backButton');
+    const selectedYearTitle = document.getElementById('selectedYearTitle');
+    const fileInput = document.getElementById('fileInput');
+    const uploadButton = document.getElementById('uploadButton');
+    const removeButton = document.getElementById('removeButton');
+    const uploadedImage = document.getElementById('uploadedImage');
+    const yearDropdown = document.getElementById('yearDropdown');
+    const storageKeyPrefix = 'yearImage-';
+
+    function handleYearSelection() {
+      const selectedYear = yearDropdown.value;
+      if (selectedYear) {
+        selectYear(selectedYear);
+      }
+    }
+
+    function selectYear(year) {
+      yearSelection.classList.add('hidden');
+      uploadSection.classList.remove('hidden');
+      backButton.classList.remove('hidden');
+      selectedYearTitle.innerText = `Manage Image for ${year} Year`;
+
+      const storedImage = localStorage.getItem(`${storageKeyPrefix}${year}`);
+      if (storedImage) {
+        uploadedImage.src = storedImage;
+        uploadedImage.classList.remove('hidden');
+        removeButton.classList.remove('hidden');
+      } else {
+        uploadedImage.classList.add('hidden');
+        removeButton.classList.add('hidden');
+      }
+
+      fileInput.value = '';
+      uploadButton.onclick = () => fileInput.click();
+      fileInput.onchange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const imageData = e.target.result;
+            localStorage.setItem(`${storageKeyPrefix}${year}`, imageData);
+            uploadedImage.src = imageData;
+            uploadedImage.classList.remove('hidden');
+            removeButton.classList.remove('hidden');
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      removeButton.onclick = () => {
+        localStorage.removeItem(`${storageKeyPrefix}${year}`);
+        uploadedImage.classList.add('hidden');
+        removeButton.classList.add('hidden');
+      };
+    }
+
+    function goBack() {
+      uploadSection.classList.add('hidden');
+      backButton.classList.add('hidden');
+      yearSelection.classList.remove('hidden');
+      yearDropdown.value = "";
+    }
+  </script>
+</body>
+</html>

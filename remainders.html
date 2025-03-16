@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semester Schedule</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #e3f2fd; /* Light Blue Background */
+            color: #333; /* Dark text for contrast */
+            text-align: center; 
+            padding: 20px; 
+        }
+        .container { display: flex; justify-content: center; align-items: flex-start; max-width: 1000px; margin: auto; gap: 40px; }
+        form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); width: 300px; text-align: left; }
+        label, select, input { display: block; margin: 10px 0; width: 100%; padding: 8px; }
+        button { background: #3498DB; color: white; border: none; padding: 10px; cursor: pointer; width: 100%; margin-top: 10px; }
+        button:hover { background: #2980B9; }
+        .schedule-column { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); width: 100%; display: none; }
+        .meeting-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 10px; }
+        .meeting-box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); text-align: left; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 10px; margin: 5px 0; border-radius: 4px; }
+        .past { background-color: #f8d7da; } /* Red for past meetings */
+        .today { background-color: #fff3cd; } /* Yellow for today's meeting */
+        .future { background-color: #d4edda; } /* Green for future meetings */
+        
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: black;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Semester Schedule</h2>
+    <div class="container">
+        <form id="scheduleForm">
+            <label for="semester_type">Semester:</label>
+            <select id="semester_type">
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+            </select>
+
+            <label>Last BOS Meeting Date:</label> <input type="date" id="bos_last_meeting">
+            <label>Semester Start:</label> <input type="date" id="sem_start">
+            <label>Semester End:</label> <input type="date" id="sem_end">
+            <label>Exam Start:</label> <input type="date" id="exam_start">
+            <label>Exam End:</label> <input type="date" id="exam_end">
+            <label>Mid 1 Start:</label> <input type="date" id="mid1_start">
+            <label>Mid 1 End:</label> <input type="date" id="mid1_end">
+            <label>Mid 2 Start:</label> <input type="date" id="mid2_start">
+            <label>Mid 2 End:</label> <input type="date" id="mid2_end">
+            
+            <button type="button" onclick="scheduleMeetings()">Submit</button>
+            <div class="footer">
+                <p>&copy; 2025 Meeting Schedule. All Rights Reserved.</p>
+            </div>
+        </form>
+        
+
+        <div class="schedule-column" id="scheduleContainer">
+            <h3>Meetings</h3>
+            <div class="meeting-grid">
+                <div class="meeting-box">
+                    <h4>CRC Meetings</h4>
+                    <ul id="crcMeetings"></ul>
+                </div>
+                <div class="meeting-box">
+                    <h4>DDC Meetings</h4>
+                    <ul id="ddcMeetings"></ul>
+                </div>
+                <div class="meeting-box">
+                    <h4>PAQIC Meetings</h4>
+                    <ul id="paqicMeetings"></ul>
+                </div>
+                <div class="meeting-box">
+                    <h4>BOS Meetings</h4>
+                    <ul id="bosMeetings"></ul>
+                </div>
+            </div>
+            <!-- Print Button -->
+            <button onclick="printSchedule()">Print Schedule</button>
+        </div>
+    </div>
+
+    <script>
+        function scheduleMeetings() {
+            console.log("Schedule function triggered"); // Debugging line
+            let semesterType = document.getElementById('semester_type').value;
+            let semStart = new Date(document.getElementById('sem_start').value);
+            let semEnd = new Date(document.getElementById('sem_end').value);
+            let bosLastMeeting = new Date(document.getElementById('bos_last_meeting').value);
+
+            if (isNaN(semStart) || isNaN(semEnd) || isNaN(bosLastMeeting)) {
+                alert("Please fill in all the required dates.");
+                return;
+            }
+
+            let periods = [
+                { start: new Date(document.getElementById('exam_start').value), end: new Date(document.getElementById('exam_end').value) },
+                { start: new Date(document.getElementById('mid1_start').value), end: new Date(document.getElementById('mid1_end').value) },
+                { start: new Date(document.getElementById('mid2_start').value), end: new Date(document.getElementById('mid2_end').value) }
+            ].filter(p => !isNaN(p.start) && !isNaN(p.end));
+
+            let scheduledDates = [];
+
+            function isSunday(date) { return date.getDay() === 0; }
+            function isExamPeriod(date) { return periods.some(period => date >= period.start && date <= period.end); }
+            function nextValidDate(date) {
+                while (isSunday(date)) { date.setDate(date.getDate() + 1); }
+                return new Date(date);
+            }
+
+            function getMeetingClass(date) {
+                const today = new Date();
+                if (date < today) return 'past';
+                if (date.toDateString() === today.toDateString()) return 'today';
+                return 'future';
+            }
+
+            // Schedule CRC Meetings every 15 days starting from the semester start date
+            let crcMeetings = document.getElementById("crcMeetings");
+            crcMeetings.innerHTML = '';
+            let crcDate = new Date(semStart);
+            while (crcDate <= semEnd) {
+                crcDate = nextValidDate(crcDate); // Ensure CRC meeting is not on a Sunday
+
+                // Skip CRC meetings during the exam period if it's Semester 1
+                if (semesterType == "1" && isExamPeriod(crcDate)) {
+                    crcDate.setDate(crcDate.getDate() + 15);
+                    continue;
+                }
+
+                scheduledDates.push(crcDate.toDateString());
+                crcMeetings.innerHTML += `<li class="${getMeetingClass(crcDate)}">CRC Meeting: ${crcDate.toDateString()}</li>`;
+                crcDate.setDate(crcDate.getDate() + 15); // Add 15 days for the next CRC meeting
+            }
+
+            // Schedule DDC Meetings twice: Once before semester and once before semester ends
+            let ddcMeetings = document.getElementById("ddcMeetings");
+            ddcMeetings.innerHTML = '';
+            let ddcStartDate = nextValidDate(new Date(semStart.getTime() - 14 * 86400000)); // 14 days before semester start
+            if (ddcStartDate < semStart) {
+                scheduledDates.push(ddcStartDate.toDateString());
+                ddcMeetings.innerHTML += `<li class="${getMeetingClass(ddcStartDate)}">DDC Meeting: ${ddcStartDate.toDateString()}</li>`;
+            }
+
+            let ddcEndDate = nextValidDate(new Date(semEnd.getTime() - 14 * 86400000)); // 14 days before semester ends
+            if (ddcEndDate >= semStart && ddcEndDate <= semEnd) {
+                scheduledDates.push(ddcEndDate.toDateString());
+                ddcMeetings.innerHTML += `<li class="${getMeetingClass(ddcEndDate)}">DDC Meeting: ${ddcEndDate.toDateString()}</li>`;
+            }
+
+            // If it's Semester 1, schedule PAQIC Meeting before semester start
+            let paqicMeetings = document.getElementById("paqicMeetings");
+            paqicMeetings.innerHTML = '';
+            if (semesterType == "1") {
+                let paqicDate = nextValidDate(new Date(semStart.getTime() - 14 * 86400000)); // 14 days before semester start
+                scheduledDates.push(paqicDate.toDateString());
+                paqicMeetings.innerHTML += `<li class="${getMeetingClass(paqicDate)}">PAQIC Meeting: ${paqicDate.toDateString()}</li>`;
+            }
+
+            // Schedule BOS Meeting
+            let bosMeetings = document.getElementById("bosMeetings");
+            bosLastMeeting.setFullYear(bosLastMeeting.getFullYear() + 2); // BOS meeting after 2 years
+            let validBOSDate = nextValidDate(bosLastMeeting);
+            bosMeetings.innerHTML = `<li class="${getMeetingClass(validBOSDate)}">BOS Meeting: ${validBOSDate.toDateString()}</li>`;
+
+            // Hide the form
+            document.getElementById("scheduleForm").style.display = "none";
+            
+            // Show the meetings section
+            document.getElementById("scheduleContainer").style.display = "block";
+        }
+
+        function printSchedule() {
+            window.print(); // Opens the browser print dialog
+        }
+    </script>
+</body>
+</html>
+
